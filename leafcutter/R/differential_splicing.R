@@ -7,14 +7,31 @@
 #' @import dplyr
 #' @export
 cluster_results_table=function(results) {
-  foreach(res=results, .combine=bind_rows) %dopar% {
-    if ( is.character(res) | ("error" %in% class(res)) )
-      data.frame(status=as.character(res), loglr=NA, df=NA, p=NA, stringsAsFactors = F) else
-      data.frame(status="Success", loglr=res$loglr, df=res$df, p=res$lrtp, stringsAsFactors = F)
-  } %>% mutate( cluster=names(results),
-                  status   = gsub("\n", "", status),  # strip newlines from any reported errors
-                  p.adjust = p.adjust(p, method="fdr") )
+  clu_names = names(results)
+  ret_val = NULL
+  for (ii in 1:length(clu_names)) {
+	clusteri = clu_names[ii]
+	res = results[[ii]]
+    tryCatch({
+		x = data.frame(status="Success", loglr=res$loglr, df=res$df, p=res$lrtp, cluster=clusteri, stringsAsFactors = F)
+	}, error=function(e) {
+	   	x = data.frame(status=as.character(res), loglr=NA, df=NA, p=NA, cluster=clusteri, stringsAsFactors = F)
+   	})
+ 	 ret_val = rbind(ret_val, x)
+	}
+  ret_val = ret_val %>% mutate(status = gsub("\n", "", status),
+							   p.adjust = p.adjust(p, method="fdr") )
+  return(ret_val)
 }
+#cluster_results_table=function(results) {
+#  foreach(res=results, .combine=bind_rows) %dopar% {
+#    if ( is.character(res) | ("error" %in% class(res)) )
+#      data.frame(status=as.character(res), loglr=NA, df=NA, p=NA, stringsAsFactors = F) else
+#      data.frame(status="Success", loglr=res$loglr, df=res$df, p=res$lrtp, stringsAsFactors = F)
+#  } %>% mutate( cluster=names(results),
+#                  status   = gsub("\n", "", status),  # strip newlines from any reported errors
+#                  p.adjust = p.adjust(p, method="fdr") )
+#}
 
 #' Convert K-1 representation of parameters to real
 #'
@@ -34,18 +51,37 @@ leaf_cutter_effect_sizes=function(results) {
   normalize=function(g) { g/sum(g) }
   softmax=function(g) normalize(exp(g))
   to_psi=function(b,conc) { normalize(softmax(b)*conc) }
-  foreach(res=results, .combine = bind_rows) %do% {
-    if ( is.character(res) | ("error" %in% class(res)) ) NULL else {
-       beta=beta_real( res$fit_full$par )
-       data.frame( intron=colnames(beta),
+  ret_val = NULL
+  for (ii in 1:length(results)) {
+	  res = results[[ii]]
+	  tryCatch({
+        beta=beta_real( res$fit_full$par )
+        x = data.frame(intron=colnames(beta),
                    logef=beta[2,],
                    baseline=to_psi(beta[1,],res$fit_full$par$conc),
                    perturbed=to_psi(beta[1,]+beta[2,],res$fit_full$par$conc),
                    stringsAsFactors = F )
-    }
-  } %>%
-  mutate( deltapsi=perturbed-baseline)
+		ret_val = rbind(ret_val, x)
+	  }, error=function(e){print(e)})
+  }
+  ret_val = ret_val %>% mutate( deltapsi=perturbed-baseline)
 }
+#leaf_cutter_effect_sizes=function(results) {
+#  normalize=function(g) { g/sum(g) }
+#  softmax=function(g) normalize(exp(g))
+#  to_psi=function(b,conc) { normalize(softmax(b)*conc) }
+#  foreach(res=results, .combine = bind_rows) %do% {
+#    if ( is.character(res) | ("error" %in% class(res)) ) NULL else {
+#       beta=beta_real( res$fit_full$par )
+#       data.frame( intron=colnames(beta),
+#                   logef=beta[2,],
+#                   baseline=to_psi(beta[1,],res$fit_full$par$conc),
+#                   perturbed=to_psi(beta[1,]+beta[2,],res$fit_full$par$conc),
+#                   stringsAsFactors = F )
+#    }
+#  } %>%
+#  mutate( deltapsi=perturbed-baseline)
+#}
 
 
 #' Perform pairwise differential splicing analysis.
