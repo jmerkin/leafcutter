@@ -63,7 +63,10 @@ leaf_cutter_effect_sizes=function(results) {
                    perturbed=to_psi(beta[1,]+beta[2,],res$fit_full$par$conc),
                    stringsAsFactors = F )
 		ret_val = rbind(ret_val, x)
-	  }, error=function(e){print(e)})
+	  }, error=function(e){
+	  	  print(e)
+	  	  print(res)
+	  })
   }
   ret_val = ret_val %>% mutate( deltapsi=perturbed-baseline)
 }
