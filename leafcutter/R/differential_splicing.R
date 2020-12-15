@@ -14,10 +14,11 @@ cluster_results_table=function(results) {
 	res = results[[ii]]
     tryCatch({
 		x = data.frame(status="Success", loglr=res$loglr, df=res$df, p=res$lrtp, cluster=clusteri, stringsAsFactors = F)
+		ret_val = rbind(ret_val, x)
 	}, error=function(e) {
 	   	x = data.frame(status=as.character(res), loglr=NA, df=NA, p=NA, cluster=clusteri, stringsAsFactors = F)
+		ret_val = rbind(ret_val, x)
    	})
- 	 ret_val = rbind(ret_val, x)
 	}
   ret_val = ret_val %>% mutate(status = gsub("\n", "", status),
 							   p.adjust = p.adjust(p, method="fdr") )
