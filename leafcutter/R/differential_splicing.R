@@ -16,6 +16,9 @@ cluster_results_table=function(results) {
 		x = data.frame(status="Success", loglr=res$loglr, df=res$df, p=res$lrtp, cluster=clusteri, stringsAsFactors = F)
 		ret_val = rbind(ret_val, x)
 	}, error=function(e) {
+		print(paste('cluster_table', e))
+		print(res)
+		res = ifelse(is.null(res), NA, res)
 	   	x = data.frame(status=as.character(res), loglr=NA, df=NA, p=NA, cluster=clusteri, stringsAsFactors = F)
 		ret_val = rbind(ret_val, x)
    	})
@@ -64,6 +67,7 @@ leaf_cutter_effect_sizes=function(results) {
                    stringsAsFactors = F )
 		ret_val = rbind(ret_val, x)
 	  }, error=function(e){
+		  print(paste('eff_sizes', e))
 	  	  print(e)
 	  	  print(res)
 	  })
